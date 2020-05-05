@@ -66,5 +66,15 @@ ggplot(long_stalks) +
        color = "Person")
 
 ##### AN ATTEMPT AT WRITING DECISION RULES #####################################
-# - if first value > 100, not small spike
-# - if first two values decrease but decrease <= 10, small spike
+# - if first value > 100, not spike pattern
+# - if first two values decrease but the decrease <= 10, small spike
+# ? if first two values decrease but the decrease >= 10, random
+# - if value >= 150 at observation 5 or 6 (Wed), large spike
+#
+##### WHEN TO SELL #############################################################
+# - either spike: 
+# - random: ???
+# - decreasing: ASAP
+# - decrease then spike?: obs 1 or on first large increase (obs 10/Fri PM?)
+#
+################################################################################
