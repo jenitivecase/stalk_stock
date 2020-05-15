@@ -4,7 +4,17 @@ source("https://raw.githubusercontent.com/jenitivecase/Settings/master/options.R
 sapply(c("gsheet", "tidyverse", "DT", "knitr"), load_packages)
 
 stalks <- as.data.frame(gsheet2tbl("docs.google.com/spreadsheets/d/1SVxFEGjCGhj3q6NQB1cJNf5CLeFTo9giG79HdOqJXgo/",
-                                   sheetid = "selling"))
+                                   sheetid = "selling")) %>%
+  filter(!is.na(Date))
+
+
+stalks <- stalks %>%
+  mutate(`AM/PM` = factor(`AM/PM`, levels = c("AM", "PM"))) %>%
+  mutate(Date = as.Date(Date, format = "%m/%d/%Y")) %>%
+  mutate(Day = lubridate::wday(Date, label = TRUE, abbr = TRUE), 
+         Week = lubridate::year(Date) + lubridate::isoweek(Date) - 2037)
+
+# saveRDS(stalks, "./stalk_stock/data_through_20200515.rds")
 
 ##### GENERAL PROJECT STAGES ###################################################
 #
@@ -20,6 +30,7 @@ stalks <- as.data.frame(gsheet2tbl("docs.google.com/spreadsheets/d/1SVxFEGjCGhj3
 # - are the four pattern labels put forth by the internet really real?
 #
 ################################################################################
+
 
 day_label_set <- stalks %>%
   filter(Week == 1) %>%
@@ -58,6 +69,8 @@ wide_stalks <- long_stalks %>%
 
 ggplot(long_stalks) +
   facet_grid(Week ~ ., switch = "y") + 
+  geom_point(aes(x = factor(obs_index, labels = gsub("_", "\n", day_label_set)), 
+                y = sell_price, group = person, color = person), size = 1) +
   geom_line(aes(x = factor(obs_index, labels = gsub("_", "\n", day_label_set)), 
                 y = sell_price, group = person, color = person), size = 1) +
   labs(title = "Stalk Market Patterns", 
