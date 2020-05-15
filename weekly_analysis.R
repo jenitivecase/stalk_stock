@@ -9,7 +9,8 @@ stalks <- as.data.frame(gsheet2tbl("docs.google.com/spreadsheets/d/1SVxFEGjCGhj3
 
 
 stalks <- stalks %>%
-  mutate(`AM/PM` = factor(`AM/PM`, levels = c("AM", "PM"))) %>%
+  rename("AMPM" = `AM/PM`) %>%
+  mutate(AMPM = factor(AMPM, levels = c("AM", "PM"))) %>%
   mutate(Date = as.Date(Date, format = "%m/%d/%Y")) %>%
   mutate(Day = lubridate::wday(Date, label = TRUE, abbr = TRUE), 
          Week = lubridate::year(Date) + lubridate::isoweek(Date) - 2037)
@@ -34,7 +35,6 @@ stalks <- stalks %>%
 
 day_label_set <- stalks %>%
   filter(Week == 1) %>%
-  rename("AMPM" = `AM/PM`) %>%
   mutate(Date = as.Date(Date, format = "%m/%d/%Y")) %>%
   gather(key = "person", value = "sell_price", Brianna, Jack, Jen, Kelly) %>%
   group_by(person, Week) %>%
@@ -44,7 +44,6 @@ day_label_set <- stalks %>%
   unique()
 
 long_stalks <- stalks %>%
-  rename("AMPM" = `AM/PM`) %>%
   mutate(Date = as.Date(Date, format = "%m/%d/%Y")) %>%
   mutate(time = case_when(AMPM == "AM" ~ "09:00",
                           AMPM == "PM"~ "15:00", 
