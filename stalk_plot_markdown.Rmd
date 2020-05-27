@@ -1,0 +1,78 @@
+---
+title: "Stalk Stocks"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+
+source("https://raw.githubusercontent.com/jenitivecase/Settings/master/options.R")
+
+library(plotly)
+library(gsheet)
+library(lubridate)
+library(dplyr)
+library(tidyr)
+
+stalks <- as.data.frame(gsheet2tbl("docs.google.com/spreadsheets/d/1SVxFEGjCGhj3q6NQB1cJNf5CLeFTo9giG79HdOqJXgo/",
+                                   sheetid = "selling")) %>%
+  filter(!is.na(Date))
+
+
+stalks <- stalks %>%
+  rename("AMPM" = `AM/PM`) %>%
+  mutate(AMPM = factor(AMPM, levels = c("AM", "PM"))) %>%
+  mutate(Date = as.Date(Date, format = "%m/%d/%Y")) %>%
+  mutate(Day = lubridate::wday(Date, label = TRUE, abbr = TRUE), 
+         Week = lubridate::year(Date) + lubridate::isoweek(Date) - 2037)
+
+day_label_set <- stalks %>%
+  filter(Week == 1) %>%
+  mutate(Date = as.Date(Date, format = "%m/%d/%Y")) %>%
+  gather(key = "person", value = "sell_price", Brianna, Jack, Jen, Kelly) %>%
+  group_by(person, Week) %>%
+  arrange(Week, person, Date, AMPM) %>%
+  mutate(obs_index = paste0(Day, "_", AMPM)) %>%
+  pull(obs_index) %>%
+  unique()
+
+long_stalks <- stalks %>%
+  mutate(Date = as.Date(Date, format = "%m/%d/%Y")) %>%
+  mutate(time = case_when(AMPM == "AM" ~ "09:00",
+                          AMPM == "PM"~ "15:00", 
+                          TRUE ~ as.character(NA))) %>%
+  mutate(datetime = as.POSIXct(paste0(Date, " ", time))) %>%
+  select(-time) %>%
+  mutate(Week = paste0("Week ", Week)) %>%
+  gather(key = "person", value = "sell_price", Brianna, Jack, Jen, Kelly) %>%
+  group_by(person, Week) %>%
+  arrange(Week, person, Date, AMPM) %>%
+  # mutate(obs_index = paste0("obs_", sprintf("%02d", row_number()))) %>%
+  mutate(obs_index = paste0(Day, "_", AMPM)) %>%
+  mutate(obs_index = factor(obs_index, 
+                            levels = day_label_set,
+                            labels = day_label_set)) %>%
+  mutate(day_time = factor(obs_index, 
+                                  levels = day_label_set,
+                                  labels = gsub("_", "\n", day_label_set))) %>%
+  ungroup()
+```
+
+```{r stalk_plot, echo=FALSE}
+stalk_plot <- ggplot(long_stalks) +
+  facet_grid(Week ~ ., switch = "y") + 
+  geom_point(aes(x = day_time, 
+                y = sell_price, group = person, color = person), size = 0.1) +
+  geom_line(aes(x = day_time, 
+                y = sell_price, group = person, color = person)) +
+  theme(legend.position = "top",
+        axis.title.x = element_blank(),
+        axis.title.y = element_blank())
+
+ggplotly(stalk_plot, tooltip = c("x", "y", "group"), width = 800, height = 800) %>%
+  layout(legend = list(x = 0,
+                       y = max(long_stalks$sell_price, na.rm = TRUE) * max(stalks$Week) +
+                         (max(long_stalks$sell_price, na.rm = TRUE)/5),
+                       orientation = "h"))
+
+```
